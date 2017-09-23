@@ -35,4 +35,4 @@ def wlsfilter_layer(image_orig, lambda_=0.2):
 	base = np.rollaxis(temp,1)
 	detail = image - base
 	
-	return (base), (detail)
+	return (base*255.0), (detail*255.0)

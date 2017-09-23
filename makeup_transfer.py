@@ -70,14 +70,14 @@ def main():
         img_points2[int(round(point[1]))][int(round(point[0]))] = 255
     
     print "Number of feature points in base image:",len(points1)
-    print "Number of feature points in base image:",len(points2)
+    print "Number of feature points in example image:",len(points2)
     
     if( len(points1) == len(points2) ):
         # img1 = np.float32(img1)
         # img2 = np.float32(img2)
         
         points = []
-        alpha = 0.5
+        alpha = 0.5             #TODO - tune alpha
         
         # Compute weighted average point coordinates
         for i in range(0, len(points1)):
@@ -124,17 +124,29 @@ def main():
     
     #skin detail transfer
     del_I = 0    #original skin details weight
-    del_E = 0    #example skin details weight
+    del_E = 1    #example skin details weight
     Rd = del_I * Id + del_E * Ed
     
     #color transfer
+    #TODO - include example image weight in eyes region
     gamma = 0.8
+    Rc_A = Ic_A.copy()
+    Rc_B = Ic_B.copy()
         
-        
-    display(np.hstack([img1, img_points]))
-    display(np.hstack([img2, img_points2]))
-    display(imgMorph)
-
+    
+    # display(np.hstack([img1, img_points]))
+    # display(np.hstack([img2, img_points2]))
+    # display(imgMorph)
+    
+    result_LAB = img_LAB.copy()
+    result_LAB[..., 0] = Is + Rd
+    result_LAB[..., 1] = Rc_A
+    result_LAB[..., 2] = Rc_B
+    
+    result = cv2.cvtColor(result_LAB, cv2.COLOR_LAB2BGR)
+    cv2.imwrite('morphed.jpg', imgMorph)
+    cv2.imwrite('result.jpg', result)
+    display(result)
 
 
 if __name__=='__main__':
