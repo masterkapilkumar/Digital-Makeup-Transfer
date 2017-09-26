@@ -5,9 +5,6 @@ import matplotlib.pyplot as plt
 import stasm
 import wls_filter
 import face_morphing
-from shapely.geometry import Point
-from shapely.geometry.polygon import Polygon
-from math import floor
 
 def display(img, name='', mode='bgr'):
     if mode == 'bgr':
@@ -35,9 +32,12 @@ def rect_contains(rect, point) :
     return True
 
 def PointInsideTriangle2(pt,poly):
-	point = Point(pt[0], pt[1])
-	polygon = Polygon(poly)
-	return polygon.contains(point)
+	hull = cv2.convexHull(np.array(poly))
+	dist = cv2.pointPolygonTest(hull,(pt[0], pt[1]),False)
+	if dist>=0:
+		return True
+	else:
+		return False
 	        
 
 def cpartition(points1, size0, size1):
@@ -160,20 +160,22 @@ def main():
     Ec_B = img_LAB2[..., 2]
     
     print "Applying bilateral filter on base image"
-    face_structure_layer = cv2.bilateralFilter(lightness_layer,distance,sigmacolor,0)
+    #face_structure_layer = cv2.bilateralFilter(lightness_layer,distance,sigmacolor,0)
+    face_structure_layer, skin_detail_layer = wls_filter.wlsfilter_layer(lightness_layer) 
     #display(face_structure_layer,mode='gray')
-    skin_detail_layer = lightness_layer - face_structure_layer
+    #skin_detail_layer = lightness_layer - face_structure_layer
     Is, Id = face_structure_layer, skin_detail_layer
 
     print "Applying bilateral filter on example image"
-    face_structure_layer2 = cv2.bilateralFilter(lightness_layer2,distance,sigmacolor,0)
-    skin_detail_layer2 = lightness_layer2 - face_structure_layer2
+    #face_structure_layer2 = cv2.bilateralFilter(lightness_layer2,distance,sigmacolor,0)
+    face_structure_layer2, skin_detail_layer2 = wls_filter.wlsfilter_layer(lightness_layer2) 
+    #skin_detail_layer2 = lightness_layer2 - face_structure_layer2
     #display(skin_detail_layer2,mode='gray')
     Es, Ed = face_structure_layer2, skin_detail_layer2
 
     print "Partitioning the image into C1, C2, C3"
     cmat = cpartition(points1,size[0],size[1])
-    np.save('cmat.npy', cmat)
+    #np.save('cmat.npy', cmat)
     #cmat = np.load('cmat.npy')
 
     #skin detail transfer
@@ -204,58 +206,15 @@ def main():
     Rc_A = (1-gamma)*Ic_A + (gamma)*Ec_A
     Rc_B = (1-gamma)*Ic_B + (gamma)*Ec_B
 
-    for x in xrange(size[1]):
-    	for y in xrange(size[0]):
-    		if not cmat[y][x]==1:
+    for y in xrange(size[0]):
+    	for x in xrange(size[1]):
+    		if cmat[y][x]==0 or cmat[y][x]==3:
     			#Rc_A[y][x] = 255
     			#Rc_B[y][x] = 255
     			Rc_A[y][x] = Ic_A[y][x]
     			Rc_B[y][x] = Ic_B[y][x]
     			Rd[y][x] = Id[y][x]
 
-    for pt in points1[30:38]:
-    	x = int(round(pt[0]))
-    	y = int(round(pt[1]))
-    	Rc_A[y][x] = Ic_A[y][x]
-    	Rc_B[y][x] = Ic_B[y][x]
-    	Rd[y][x] = Id[y][x]
-
-    	x=x+1
-    	Rc_A[y][x] = Ic_A[y][x]
-    	Rc_B[y][x] = Ic_B[y][x]
-    	Rd[y][x] = Id[y][x]
-
-    	y=y+1
-    	Rc_A[y][x] = Ic_A[y][x]
-    	Rc_B[y][x] = Ic_B[y][x]
-    	Rd[y][x] = Id[y][x]
-
-    	x=x-1
-    	Rc_A[y][x] = Ic_A[y][x]
-    	Rc_B[y][x] = Ic_B[y][x]
-    	Rd[y][x] = Id[y][x]
-    	
-    for pt in points1[40:48]:
-    	x = int(round(pt[0]))
-    	y = int(round(pt[1]))
-    	Rc_A[y][x] = Ic_A[y][x]
-    	Rc_B[y][x] = Ic_B[y][x]
-    	Rd[y][x] = Id[y][x]
-
-    	x=x+1
-    	Rc_A[y][x] = Ic_A[y][x]
-    	Rc_B[y][x] = Ic_B[y][x]
-    	Rd[y][x] = Id[y][x]
-
-    	y=y+1
-    	Rc_A[y][x] = Ic_A[y][x]
-    	Rc_B[y][x] = Ic_B[y][x]
-    	Rd[y][x] = Id[y][x]
-
-    	x=x-1
-    	Rc_A[y][x] = Ic_A[y][x]
-    	Rc_B[y][x] = Ic_B[y][x]
-    	Rd[y][x] = Id[y][x]
 
     result_LAB = img_LAB.copy()
     result_LAB[..., 0] = Is + Rd

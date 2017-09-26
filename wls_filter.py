@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.sparse import spdiags
 from scipy.sparse.linalg import spsolve
 
-def wlsfilter_layer(image_orig, lambda_=0.2):
+def wlsfilter_layer(image_orig, beta=0.2 ,lambda_=0.2):
 	
 	image = image_orig.astype(np.float)/255.0
 	image1 = image.flatten(1)
@@ -16,8 +16,8 @@ def wlsfilter_layer(image_orig, lambda_=0.2):
 	dy = np.diff(image, 1, 0)
 	dx = np.diff(image, 1, 1)
 	
-	dy = -lambda_ / (np.absolute(dy) ** 1.2 + 0.0001)
-	dx = -lambda_ / (np.absolute(dx) ** 1.2 + 0.0001)
+	dy = -beta*lambda_ / ((np.absolute(dy) ** 1.2 + 0.0001))
+	dx = -beta*lambda_ / ((np.absolute(dx) ** 1.2 + 0.0001))
 	
 	dy = np.vstack((dy, np.zeros(s[1], )))
 	dx = np.hstack((dx, np.zeros(s[0], )[:, np.newaxis]))
