@@ -6,6 +6,30 @@ import stasm
 import wls_filter
 import face_morphing
 
+def shading_transfer(Is, Es, cmat, Rs, size):
+    del_Es = cv2.Laplacian(Es,cv2.CV_64F)
+    del_Is = cv2.Laplacian(Is,cv2.CV_64F)
+    del_Rs = del_Is.copy()
+    
+    for y in range(size[0]):
+        for x in range(size[1]):
+            if(cmat[y][x]==1):
+                beta = 1
+            else:
+                beta = 0
+            if( beta * abs(del_Es[y][x]) > abs(del_Is[y][x])):
+                del_Rs[y][x] = del_Es[y][x]
+    
+    for y in range(size[0]-1):
+        for x in range(size[1]-1):
+            del_Rs[y][x] = ( del_Rs[y+1][x] + del_Rs[y-1][x] + del_Rs[y][x+1] + del_Rs[y][x-1] )/4
+
+def lip_makeup(Is, Es, beta, Rs, size):
+    
+    del_Rs = Is.copy()
+    
+   
+
 def display(img, name='', mode='bgr'):
     if mode == 'bgr':
         plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
@@ -162,14 +186,14 @@ def main():
     Ec_A = img_LAB2[..., 1]
     Ec_B = img_LAB2[..., 2]
     
-    print "Applying bilateral filter on base image"
+    print "Applying wls filter on base image"
     #face_structure_layer = cv2.bilateralFilter(lightness_layer,distance,sigmacolor,0)
     face_structure_layer, skin_detail_layer = wls_filter.wlsfilter_layer(lightness_layer,cmat) 
     #display(face_structure_layer,mode='gray')
     #skin_detail_layer = lightness_layer - face_structure_layer
     Is, Id = face_structure_layer, skin_detail_layer
 
-    print "Applying bilateral filter on example image"
+    print "Applying wls filter on example image"
     #face_structure_layer2 = cv2.bilateralFilter(lightness_layer2,distance,sigmacolor,0)
     face_structure_layer2, skin_detail_layer2 = wls_filter.wlsfilter_layer(lightness_layer2,cmat) 
     #skin_detail_layer2 = lightness_layer2 - face_structure_layer2
@@ -213,16 +237,21 @@ def main():
     			Rc_A[y][x] = Ic_A[y][x]
     			Rc_B[y][x] = Ic_B[y][x]
     			Rd[y][x] = Id[y][x]
-
+        
+    #Highlight and shading transfer
+    # Rs = Is.copy()
+    # shading_transfer(Is, Es, cmat, Rs, size)
 
     result_LAB = img_LAB.copy()
-    result_LAB[..., 0] = Is + Rd
+    result_LAB[..., 0] = Rs + Rd
     result_LAB[..., 1] = Rc_A
     result_LAB[..., 2] = Rc_B
     
     result = cv2.cvtColor(result_LAB, cv2.COLOR_LAB2BGR)
     cv2.imwrite('morphed.jpg', imgMorph)
     cv2.imwrite('result.jpg', result)
+    cv2.imwrite('base_points.jpg', img_points)
+    cv2.imwrite('example_points.jpg', img_points2)
     display(result)
 
 
