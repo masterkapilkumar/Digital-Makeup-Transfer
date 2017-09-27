@@ -1,5 +1,6 @@
 import cv2
 import sys
+from math import e, sqrt, pi
 import numpy as np
 import matplotlib.pyplot as plt
 import stasm
@@ -24,10 +25,26 @@ def shading_transfer(Is, Es, cmat, Rs, size):
         for x in range(size[1]-1):
             del_Rs[y][x] = ( del_Rs[y+1][x] + del_Rs[y-1][x] + del_Rs[y][x+1] + del_Rs[y][x-1] )/4
 
-def lip_makeup(Is, Es, beta, Rs, size):
+def gaussian(x, s, m):
+    return 1/(sqrt(2*pi)*s) * e**(-0.5*(float(x-m)/s)**2)
+            
+def lip_makeup(M, I_L, E, E_L, cmat, size):
     
-    del_Rs = Is.copy()
-    
+    for y in range(size[0]):
+        for x in range(size[1]):
+            if(cmat[y][x]==2):
+                qx = x
+                qy = y
+                maxfun = 0
+                for j in range(size[0]):
+                    for i in range(size[1]):
+                        if(i!=x and j!=y and cmat[j][i]==2):
+                            fun = gaussian( sqrt((i-x)**2 + (j-y)**2), 1, 0) * gaussian( abs(E_L[j][i] - I_L[x][y]), 1, 0)
+                            if(fun > maxfun):
+                                maxfun = fun
+                                qx = i
+                                qy = j
+                M[y][x] = E[qx][qy]
    
 
 def display(img, name='', mode='bgr'):
@@ -239,15 +256,36 @@ def main():
     			Rd[y][x] = Id[y][x]
         
     #Highlight and shading transfer
-    # Rs = Is.copy()
+    print("Highlight and shading transfer")
+    Rs = Is.copy()
     # shading_transfer(Is, Es, cmat, Rs, size)
-
+    
     result_LAB = img_LAB.copy()
     result_LAB[..., 0] = Rs + Rd
     result_LAB[..., 1] = Rc_A
     result_LAB[..., 2] = Rc_B
+    result = cv2.cvtColor(result_LAB, cv2.COLOR_LAB2BGR)
+    
+    #Lip makeup
+    print("Lip makeup")
+    M = result.copy()
+    """
+    lip_makeup(M, lightness_layer, imgMorph, lightness_layer2, cmat, size)
+    M_LAB = cv2.cvtColor(M, cv2.COLOR_BGR2LAB)
+    M_L = M_LAB[..., 0]
+    M_A = M_LAB[..., 1]
+    M_B = M_LAB[..., 2]
+                
+    for y in range(size[0]):
+        for x in range(size[1]):
+            if(cmat[y][x]==2):
+                result_LAB[y][x][0] = M_L[y][x]
+                result_LAB[y][x][1] = M_A[y][x]
+                result_LAB[y][x][2] = M_B[y][x]
     
     result = cv2.cvtColor(result_LAB, cv2.COLOR_LAB2BGR)
+    """
+    
     cv2.imwrite('morphed.jpg', imgMorph)
     cv2.imwrite('result.jpg', result)
     cv2.imwrite('base_points.jpg', img_points)
