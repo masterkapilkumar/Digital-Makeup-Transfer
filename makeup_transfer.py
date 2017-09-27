@@ -149,6 +149,9 @@ def main():
     sigmacolor = 85
     #display(imgMorph)
 
+    print "Partitioning the image into C1, C2, C3"
+    cmat = cpartition(points1,size[0],size[1])
+
     print "Layer decomposition"
     lightness_layer = img_LAB[..., 0]
     Ic_A = img_LAB[..., 1]
@@ -161,22 +164,18 @@ def main():
     
     print "Applying bilateral filter on base image"
     #face_structure_layer = cv2.bilateralFilter(lightness_layer,distance,sigmacolor,0)
-    face_structure_layer, skin_detail_layer = wls_filter.wlsfilter_layer(lightness_layer) 
+    face_structure_layer, skin_detail_layer = wls_filter.wlsfilter_layer(lightness_layer,cmat) 
     #display(face_structure_layer,mode='gray')
     #skin_detail_layer = lightness_layer - face_structure_layer
     Is, Id = face_structure_layer, skin_detail_layer
 
     print "Applying bilateral filter on example image"
     #face_structure_layer2 = cv2.bilateralFilter(lightness_layer2,distance,sigmacolor,0)
-    face_structure_layer2, skin_detail_layer2 = wls_filter.wlsfilter_layer(lightness_layer2) 
+    face_structure_layer2, skin_detail_layer2 = wls_filter.wlsfilter_layer(lightness_layer2,cmat) 
     #skin_detail_layer2 = lightness_layer2 - face_structure_layer2
     #display(skin_detail_layer2,mode='gray')
     Es, Ed = face_structure_layer2, skin_detail_layer2
 
-    print "Partitioning the image into C1, C2, C3"
-    cmat = cpartition(points1,size[0],size[1])
-    #np.save('cmat.npy', cmat)
-    #cmat = np.load('cmat.npy')
 
     #skin detail transfer
     print "Skin detail transfer"
